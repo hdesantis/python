@@ -1,0 +1,75 @@
+# open the list of queries from the file on your computer, giving ourselves read permissions ('r'), defining it as 'f' for file
+
+with open("/Users/harrisondesantis/Desktop/Text_Doc_Python1.txt", "r") as f:
+    queries = [line.strip() for line in f]
+    print(queries)
+import csv
+import pandas as pd
+import numpy as np
+
+# ignore below
+#f = open("/Users/harrisondesantis/Desktop/Text_Doc_Python.txt", "r+")
+#my_file_data = f.read()
+#f.close()
+#print(my_file_data)
+
+from selenium import webdriver
+import random
+import time
+from bs4 import BeautifulSoup
+import requests
+
+# make a random number between 1 - 5 seconds for each Google search to delay so IP's don't block us
+delay_seconds = random.randint(100, 500)/100
+
+# retrieve the Chromedriver downloaded on your computer from https://chromedriver.chromium.org/downloads
+# webdriver was imported from selnium earlier. it is the actual web automation
+# webdriver is calling Chrome and executing on chromedriver application downloaded? Not sure
+chromedriver ="/Users/harrisondesantis/Downloads/chromedriver 3"
+driver = webdriver.Chrome(chromedriver)
+
+# creating a CSV file called innovators.csv, giving us writing ablilities (w), defining it as 'file'
+# giving our CSV headers (fields) of Query and Snippet. When this is a CSV later, those will be our column names
+# writing out the file, and writing out hte fields that we just defined (aka the columns)
+with open('innovators.csv', 'w') as file:
+    fields = ['Query', 'Snippet']
+    writer = csv.writer(file)
+    writer.writerow(fields)
+
+# setting a for loop so this search can be performed for each item in the file
+# taking queries, adding a "+" in between spaces so the Google search URL will work
+# appending the query with "+" signs to go after google.com/search?q= , defining that URL as google_url
+# telling the selenium driver to retrieve the google_url
+# time.sleep defines how long in between loops the next search will run. delay_seconds is that random number generator we created earlier
+# LEFT OFF ON DEFINING R, HTML_doc, and BS PARSER
+    for item in queries:
+        updated_query = item.replace(" ", "+")
+        google_url = "https://www.google.com/search?q=" + updated_query
+        driver.get(google_url)
+        time.sleep(delay_seconds)
+
+        r = requests.get(google_url)
+        html_doc = r.text
+
+        soup = BeautifulSoup(driver.page_source,'lxml')
+
+
+
+        for s in soup.find_all(id="res"):
+        #for s in soup.find_all(id="res", attrs={'class': 'e24Kjd'}):
+#Unsure on this one. replacing the BS scrape and separating away first character?
+            s = s.text.replace('Search ResultsFeatured snippet from the web', '').split("›")[0]
+# Replacing all instances of 'Search ResultsWeb Snippet' w 'No snippet'
+            ns = s.replace('Search ResultsWeb results', 'No snippet : ')
+#Defining 'data' as array of query, result (with the 'No snippet' modification)
+            data = item, ns
+#translating 'data' array into 'row', which is used in csv write
+#           row = [data[0], data[1]]
+#REVISED, Row not needed
+            print(data)
+            writer.writerow(data)
+
+file.close()
+
+#df = pd.DataFrame(data, columns= ['query', 'separator', 'snippet'])
+#print(df)
