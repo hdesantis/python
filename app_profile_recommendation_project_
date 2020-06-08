@@ -1,0 +1,458 @@
+# ## App Installation Research Project
+# 
+# We only build apps that are free to download and install. Our revenue for any given app is mostly influenced by the number of users who use our app. The more users that see and engage with the ads, the better. __Our goal is to understand what type of iOS and Play apps are likely to attract more users so we can lean into these app types in the future.__
+
+# In[1]:
+
+
+def explore_data(dataset, start, end, rows_and_columns=False):
+    dataset_slice = dataset[start:end]    
+    for row in dataset_slice:
+        print(row)
+        print('\n') # adds a new (empty) line after each row
+
+    if rows_and_columns:
+        print('Number of rows:', len(dataset))
+        print('Number of columns:', len(dataset[0]))
+
+
+# In[2]:
+
+
+open_file = open('AppleStore.csv', encoding='utf8')
+from csv import reader
+read_file = reader(open_file)
+ios = list(read_file)
+ios_header = list(ios)[0]
+ios_list = list(ios)[1:]
+
+open_file = open('googleplaystore.csv')
+read_file = reader(open_file)
+play = list(read_file)
+play_header = list(play)[0]
+play_list = list(play)[1:]
+
+
+# In[3]:
+
+
+explore_data(play,1,10,rows_and_columns = True)
+
+
+# In[4]:
+
+
+print(len(play_list))
+print(len(ios_list))
+
+
+# In[5]:
+
+
+print(ios_header)
+
+
+# In[6]:
+
+
+print(play_list[10472])
+
+
+# In[7]:
+
+
+print(play_list[149])
+
+
+# In[8]:
+
+
+print(play[10472])
+
+
+# In[9]:
+
+
+del [play[10472]]
+
+
+# In[10]:
+
+
+print(play_list[149])
+
+
+# In[11]:
+
+
+print(play_list[10472])
+
+
+# ## REMOVING DUPLICATES
+# 
+# 
+# The list above has duplicates. Here is an example of how Slack has been listed thrice and Facebook listed twice:
+# 
+# We have counted 1181 duplicate values. We will not remove these randomly, but rather we will remove all but the very latest app entry (as the latest one will have the most up to date reivew info). We will use a loop to identify duplicates and then remove them.
+
+# In[12]:
+
+
+for app in play_list:
+    name = app[0]
+    if name == 'Facebook':
+        print(app)
+
+
+# In[13]:
+
+
+for app in play:
+    name = app[0]
+    if name == 'Slack':
+        print(app)
+
+
+# In[14]:
+
+
+unique_apps = []
+duplicate_apps = []
+
+for app in play:
+    name = app[0]
+    if name in unique_apps:
+        duplicate_apps.append(name)
+    else:
+        unique_apps.append(name)
+
+print('Dups: ', len(duplicate_apps))
+print('Uniques: ', len(unique_apps))
+
+
+# In[15]:
+
+
+print(duplicate_apps[:10])
+
+
+# In[16]:
+
+
+print(len(play) - len(duplicate_apps))
+
+
+# In[17]:
+
+
+del(play[10473])
+
+
+# In[18]:
+
+
+for app in play_list:
+    name = app[0]
+    n_reviews = app[3]
+    if '3.0M' in n_reviews or 'Life Made WI-Fi Touchscreen Photo Frame' in name:
+        print(app)
+
+
+# In[19]:
+
+
+del(play_list[10472])
+
+
+# In[20]:
+
+
+reviews_max = { }
+
+for app in play_list:
+    name = app[0]
+    n_reviews = float(app[3])
+    if name in reviews_max and reviews_max[name] < n_reviews:
+        reviews_max[name] = n_reviews
+    if name not in reviews_max:
+        reviews_max[name] = n_reviews
+
+
+# In[21]:
+
+
+android_clean = []
+already_added = []
+
+for app in play_list:
+    name = app[0]
+    n_reviews = float(app[3])
+    if n_reviews == reviews_max[name] and name not in already_added:
+        android_clean.append(app)
+        already_added.append(name)
+
+
+# ## Removing Non-English Apps
+
+# In[22]:
+
+
+def is_english (string):
+    non_asci = 0
+    for char in string:
+        if ord(char) > 127:
+            non_asci += 1
+    if non_asci < 3:
+        return True
+    else: 
+        return False
+    
+
+
+# In[23]:
+
+
+is_english('Docs To Go™ Free Office Suite')
+
+
+# In[24]:
+
+
+is_english('爱奇艺PPS -《欢乐颂2》电视剧热播')
+
+
+# In[25]:
+
+
+print(play_header)
+print(ios_header)
+
+
+# In[26]:
+
+
+print(len(ios_list))
+print(len(play_list))
+
+
+# ## Isolating to Free Apps
+
+# In[27]:
+
+
+ios_is_free = []
+ios_not_free = []
+
+for row in ios_list:
+    ios_price = float(row[4].replace('$',''))
+    ios_name = row[1]
+    if ios_price > 0:
+        ios_not_free.append(ios_name)
+    else:
+        ios_is_free.append(ios_name)
+        
+print('iOS free: ', len(ios_is_free))
+print('iOS not free : ', len(ios_not_free))
+
+
+play_is_free = []
+play_not_free = []
+
+
+for row in play_list:
+    play_price = float(row[7].replace('$',''))
+    play_name = row[0]
+    if play_price > 0:
+        play_not_free.append(play_name)
+    else:
+        play_is_free.append(play_name)
+        
+print('Play free: ', len(play_is_free))
+print('Play not free : ', len(play_not_free))
+
+
+
+# # FINDING MOST SUCCESSFUL APPS IN BOTH MARKETS
+# Find top app categories that are successful in both Play and iOS. Our end goal is to add apps to both markets, and we want to see which kinds perform best.
+
+# In[42]:
+
+
+def freq_table(dataset, index):
+    table = {}
+    total = 0
+    for row in dataset:
+        total += 1
+        genre = row[index]
+        if genre in table:
+            table[genre] += 1
+        else:
+            table[genre] = 1
+
+    table_percentages = {}
+    for key in table:
+        percentage = (table[key] / total) * 100
+        table_percentages[key] = percentage
+    
+    return table_percentages
+
+def display_table(dataset, index):
+    table = freq_table(dataset, index)
+    table_display = []
+    for key in table:
+        key_val_as_tuple = (table[key], key)
+        table_display.append(key_val_as_tuple)
+    table_sorted = sorted(table_display, reverse = True)
+    for entry in table_sorted:
+        print(entry[1], ':', entry[0])
+
+
+# In[43]:
+
+
+# ios_table = freq_table(ios_list,11)
+# play_table = freq_table(play_list,1)
+
+
+# In[44]:
+
+
+# def display_table(dataset, index):
+#     table = freq_table(dataset, index)
+#     table_display = []
+#     for key in table:
+#         key_val_as_tuple = (table[key], key)
+#         table_display.append(key_val_as_tuple)
+#     table_sorted = sorted(table_display, reverse = True)
+#     for entry in table_sorted:
+#         print(entry[1], ':', entry[0])
+
+
+# ## What are the most popular iOS apps types?
+# 
+# Percentages of each app's DL listed below:
+
+# In[45]:
+
+
+display_table(ios_list,11)
+
+
+# Over half of the the iOS apps are games.
+
+# ## What are the most popular types of Play apps?
+
+# In[46]:
+
+
+display_table(play_list,1)
+
+
+# More of the Play apps are designed for utility
+
+# In[57]:
+
+
+print(play_header)
+
+
+# In[48]:
+
+
+display_table(play_list,9)
+
+
+# Genres has more granularity and has more variety than Category. However, Tools is a top performer on both.
+
+# In[49]:
+
+
+print(ios_header)
+
+
+# In[50]:
+
+
+freq_table(ios_list, 11)
+
+
+# ## Most Popular Apps by Genre in App Store
+# 
+# Social media apps get 45k ratings per app on average. Music comes in second with 28k.
+# 
+
+# In[58]:
+
+
+prime_genre_freq = freq_table(ios_list, 11)
+
+for genre in prime_genre_freq:
+    total = 0
+    len_genre = 0
+    
+    for row in ios_list:
+        genre_app = row[11]
+        
+        if genre_app == genre:
+            ratings = float(row[5])
+            total += ratings
+            len_genre += 1
+
+    avg_ratings = total / len_genre
+    print(genre, ':', avg_ratings)            
+
+
+# In[52]:
+
+
+print(play_header)
+
+
+# ## Most Popular Apps by Genre in Play Store
+
+# In[53]:
+
+
+prime_genre_freq = freq_table(play_list, 1)
+
+for genre in prime_genre_freq:
+    total = 0
+    len_genre = 0
+    
+    for row in play_list:
+        genre_app = row[1]
+        
+        if genre_app == genre:
+            ratings = float(row[3])
+            total += ratings
+            len_genre += 1
+
+    avg_ratings = total / len_genre
+    print(genre)            
+    print(avg_ratings)
+
+
+# In[54]:
+
+
+prime_cat_freq = freq_table(play_list, 1)
+
+for category in prime_cat_freq:
+    total = 0
+    len_category = 0
+    
+    for row in play_list:
+        category_app = row[1]
+        
+        if category_app == category:
+            installs = row[5]
+            installs = installs.replace('+', '')
+            installs = installs.replace(',', '')
+            installs = float(installs)
+            total += installs
+            len_category += 1
+    
+    avg_cat = total / len_category
+    print(category)
+    print(avg_cat)
+
